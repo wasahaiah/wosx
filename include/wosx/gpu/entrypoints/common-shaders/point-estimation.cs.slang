@@ -87,7 +87,9 @@ void runPersistentPointEstimator(uint3 threadId: SV_DispatchThreadID,
         // ensure merge writes are visible before releasing the lock
         DeviceMemoryBarrier();
 
-        // release spinlock
-        locks[sampleIndex] = 0;
+        // release spinlock with an atomic store to pair with the atomic acquire
+        // above (a plain store would be a data race against the InterlockedCompareExchange)
+        uint prevLock;
+        InterlockedExchange(locks[sampleIndex], 0, prevLock);
     }
 }
